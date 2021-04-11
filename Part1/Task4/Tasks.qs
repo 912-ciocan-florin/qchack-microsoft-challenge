@@ -78,9 +78,24 @@ namespace QCHack.Task4 {
         return -1;
     }
     
-    operation Task1_DivisibleByFour (output : Qubit) : Unit is Adj+Ctl {
-        let PatternOne = ControlledOnBitString([true], X);
-        PatternOne([output], output);
+    function Triangles(edges : (Int, Int)[], V : Int) : ((Int, Int, Int)[], Int) {
+        
+        mutable triangles = new((Int, Int, Int))[Length(edges)];
+        mutable triangle_index = 0;
+        mutable n = Length(edges);
+        for index in 0 .. n-1 {
+            for v in 0 .. V - 1 {
+                let (a, b) = edges[index];
+                let x = Is_Edge((a, v), edges, index);
+                let y = Is_Edge((b, v), edges, index);
+                if (x != -1 and y != -1){
+                    set triangles w/= triangle_index <- (index, x, y);
+                    set triangle_index = triangle_index + 1;
+                }
+            }
+        }
+
+        return (triangles, triangle_index);
     }
 
     operation Task4_TriangleFreeColoringOracle (
@@ -90,34 +105,17 @@ namespace QCHack.Task4 {
         target : Qubit
     ) : Unit is Adj+Ctl {
         
-        Message("State: ");
-        DumpMachine();
+        let (triangles, nb_triangles) = Triangles(edges, V);
+        use triangle_states = Qubit[nb_triangles];
         within{
-            X(target);
-            mutable n = Length(edges);
-            for index in 0 .. n-1 {
-                for v in 0 .. V - 1 {
-                    let (a, b) = edges[index];
-                    let x = Is_Edge((a, v), edges, index);
-                    let y = Is_Edge((b, v), edges, index);
-                    if (x != -1 and y != -1){
-                        use q = Qubit();
-                        ValidTriangle(colorsRegister[index], colorsRegister[x], colorsRegister[y], q);
-                        X(q);
-                        CNOT(q, target);
-                        Message("Triangle");
-                        DumpMachine();
-                    }
-                }
+            for i in 0 .. nb_triangles-1 {
+                let (a, b, c) = triangles[i];
+                ValidTriangle(colorsRegister[a], colorsRegister[b], colorsRegister[c], triangle_states[i]);
             }
         }
         apply{
-            Message("State: ");
-            DumpMachine();
+            ApplyControlledOnInt(2 ^ nb_triangles - 1, X, triangle_states, target);
         }
-        
-        
-
     }
 }
 
