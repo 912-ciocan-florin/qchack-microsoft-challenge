@@ -23,8 +23,36 @@ namespace QCHack.Task3 {
     // Warning: some library operations, such as ApplyToEach, might count as multi-qubit gate,
     // even though they apply single-qubit gates to separate qubits. Make sure you run the test
     // on your solution to check that it passes before you submit the solution!
+    operation Oracle_2_Equal(q1 : Qubit, q2 : Qubit, aux : Qubit) : Unit is Adj+Ctl {
+        CNOT(q1, aux);
+        CNOT(q2, aux);
+        X(aux);
+    }
+
+    
     operation Task3_ValidTriangle (inputs : Qubit[], output : Qubit) : Unit is Adj+Ctl {
-        // ...
+        
+        use aux = Qubit[2];
+
+        
+        CNOT(inputs[0], aux[0]);
+        CNOT(inputs[1], aux[0]);
+        X(aux[0]);
+
+        CNOT(inputs[1], aux[1]);
+        CNOT(inputs[2], aux[1]);
+        X(aux[1]);
+        
+        ApplyAnd(aux[0], aux[1], output);
+        X(output);
+        
+        CNOT(inputs[0], aux[0]);
+        CNOT(inputs[1], aux[0]);
+	    X(aux[0]);
+
+        CNOT(inputs[1], aux[1]);
+        CNOT(inputs[2], aux[1]);
+        X(aux[1]);
     }
 }
 

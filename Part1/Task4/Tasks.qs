@@ -1,6 +1,8 @@
 namespace QCHack.Task4 {
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Logical;
 
     // Task 4 (12 points). f(x) = 1 if the graph edge coloring is triangle-free
     // 
@@ -37,13 +39,85 @@ namespace QCHack.Task4 {
     // Hint: Remember that you can examine the inputs and the intermediary results of your computations
     //       using Message function for classical values and DumpMachine for quantum states.
     //
+
+    operation ValidTriangle (a : Qubit, b : Qubit, c : Qubit, output : Qubit) : Unit is Adj+Ctl {
+        
+        use aux = Qubit[2];
+        
+        CNOT(a, aux[0]);
+        CNOT(b, aux[0]);
+        X(aux[0]);
+
+        CNOT(b, aux[1]);
+        CNOT(c, aux[1]);
+        X(aux[1]);
+        
+        ApplyAnd(aux[0], aux[1], output);
+        X(output);
+        
+        CNOT(a, aux[0]);
+        CNOT(b, aux[0]);
+	    X(aux[0]);
+
+        CNOT(b, aux[1]);
+        CNOT(c, aux[1]);
+        X(aux[1]);
+    }
+
+    function Is_Edge(t1 : (Int, Int), edges : (Int, Int)[], index : Int) : Int {
+        let (a, b) = t1;
+        
+        mutable n = Length(edges);
+        for i in index .. n-1 {
+            let (e_a, e_b) = edges[i];
+            if ((a == e_a and b == e_b) or (a == e_b and b == e_a)) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
+    
+    operation Task1_DivisibleByFour (output : Qubit) : Unit is Adj+Ctl {
+        let PatternOne = ControlledOnBitString([true], X);
+        PatternOne([output], output);
+    }
+
     operation Task4_TriangleFreeColoringOracle (
         V : Int, 
         edges : (Int, Int)[], 
         colorsRegister : Qubit[], 
         target : Qubit
     ) : Unit is Adj+Ctl {
-        // ...
+        
+        Message("State: ");
+        DumpMachine();
+        within{
+            X(target);
+            mutable n = Length(edges);
+            for index in 0 .. n-1 {
+                for v in 0 .. V - 1 {
+                    let (a, b) = edges[index];
+                    let x = Is_Edge((a, v), edges, index);
+                    let y = Is_Edge((b, v), edges, index);
+                    if (x != -1 and y != -1){
+                        use q = Qubit();
+                        ValidTriangle(colorsRegister[index], colorsRegister[x], colorsRegister[y], q);
+                        X(q);
+                        CNOT(q, target);
+                        Message("Triangle");
+                        DumpMachine();
+                    }
+                }
+            }
+        }
+        apply{
+            Message("State: ");
+            DumpMachine();
+        }
+        
+        
+
     }
 }
 
